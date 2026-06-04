@@ -19,17 +19,16 @@ document.getElementById('gate-form').addEventListener('submit', async (e) => {
     });
     if (res.ok) {
       unlock();
-    } else {
+    } else if (res.status === 403) {
+      // Correct endpoint, wrong password
       showGateError();
+    } else {
+      // API not available (local dev without vercel dev) — client-side fallback
+      if (pw === 'Marshmellow') unlock(); else showGateError();
     }
   } catch {
-    // If the API isn't available (e.g. local static server), fall back
-    // to a client-side check so the page still works for demos
-    if (pw === 'Marshmellow') {
-      unlock();
-    } else {
-      showGateError();
-    }
+    // Network error / API not running — client-side fallback
+    if (pw === 'Marshmellow') unlock(); else showGateError();
   }
 });
 
