@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RoboCamp 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="display-page">
+
+  <!-- ── Header ── -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="header-icon">⚙</div>
+        <div>
+          <div class="header-title" id="competition-name">RoboCamp 2026</div>
+          <div class="header-sub">Mock Robotics Competition</div>
+        </div>
+      </div>
+      <div class="connection-pill" id="conn-status">
+        <span class="conn-dot"></span>
+        <span class="conn-label">Connecting…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main grid ── -->
+  <main class="display-grid">
+
+    <!-- Timer -->
+    <section class="card timer-card">
+      <div class="section-label">MISSION TIME</div>
+      <div class="timer-wrap">
+        <div class="timer-digits" id="timer-digits">2:30</div>
+        <div class="timer-badge" id="timer-badge" data-state="ready">READY</div>
+      </div>
+      <div class="timer-bar-track">
+        <div class="timer-bar-fill" id="timer-bar"></div>
+      </div>
+    </section>
+
+    <!-- Current Match -->
+    <section class="card current-match-card">
+      <div class="section-label">ON THE FIELD</div>
+      <div class="current-team-name" id="cur-team-name">—</div>
+      <div class="current-meta">
+        <div class="meta-chip">
+          <span class="meta-lbl">TEAM #</span>
+          <span class="meta-val" id="cur-team-num">—</span>
+        </div>
+        <div class="meta-chip">
+          <span class="meta-lbl">ROUND</span>
+          <span class="meta-val" id="cur-round">—</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Queue -->
+    <section class="card queue-card">
+      <div class="section-label">COMING UP</div>
+      <ol class="queue-list" id="queue-list">
+        <li class="queue-item queue-empty">No upcoming matches</li>
+      </ol>
+    </section>
+
+    <!-- Scoreboard -->
+    <section class="card scoreboard-card">
+      <div class="section-label">SCOREBOARD</div>
+      <div class="scoreboard-wrap">
+        <table class="scoreboard-table" id="scoreboard-table">
+          <thead>
+            <tr>
+              <th class="col-rank">#</th>
+              <th class="col-team">Team</th>
+              <th class="col-num">No.</th>
+              <th class="col-r">R1</th>
+              <th class="col-r">R2</th>
+              <th class="col-r">R3</th>
+              <th class="col-best">Best</th>
+            </tr>
+          </thead>
+          <tbody id="scoreboard-body">
+            <tr><td colspan="7" class="empty-cell">Scores will appear here</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Schedule -->
+    <section class="card schedule-card">
+      <div class="section-label">MATCH SCHEDULE</div>
+      <div class="schedule-wrap">
+        <table class="schedule-table" id="schedule-table">
+          <thead>
+            <tr>
+              <th class="col-match">#</th>
+              <th class="col-team">Team</th>
+              <th class="col-num">No.</th>
+              <th class="col-r">Rd</th>
+            </tr>
+          </thead>
+          <tbody id="schedule-body">
+            <tr><td colspan="4" class="empty-cell">Loading schedule…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/display.js"></script>
+</body>
+</html>

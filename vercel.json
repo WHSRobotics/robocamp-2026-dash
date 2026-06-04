@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "note": "Vercel does not support persistent WebSocket/Socket.io servers. This file is provided for reference only. Deploy to Render (see README.md) for full functionality.",
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server.js"
+    }
+  ]
+}
