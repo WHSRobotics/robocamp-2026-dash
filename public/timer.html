@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timer — RoboCamp 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    /* Timer page overrides — full-screen centered layout */
+    .timer-page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      gap: 0;
+    }
+
+    .tp-header {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 48px;
+      background: rgba(247,242,227,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 10;
+    }
+
+    .tp-brand {
+      font-family: 'Orbitron', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: .05em;
+    }
+
+    .tp-actions { display: flex; align-items: center; gap: 10px; }
+
+    /* Main timer display */
+    .tp-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      padding: 80px 40px 60px;
+      width: 100%;
+      max-width: 700px;
+    }
+
+    .tp-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .2em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .tp-digits {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(100px, 22vw, 200px);
+      font-weight: 900;
+      color: var(--timer-color);
+      letter-spacing: .04em;
+      line-height: 1;
+      text-shadow: 0 4px 20px rgba(122,92,0,0.2), 0 0 60px rgba(184,134,11,0.08);
+      transition: color .4s;
+      user-select: none;
+    }
+
+    .tp-digits.running {
+      color: #1a5c2a;
+      text-shadow: 0 4px 20px rgba(26,92,42,0.25), 0 0 60px rgba(26,122,60,0.08);
+    }
+
+    .tp-digits.times-up {
+      color: var(--red);
+      text-shadow: 0 4px 20px rgba(192,57,43,0.4), 0 0 60px rgba(192,57,43,0.15);
+      animation: pulse-danger 1s infinite;
+    }
+
+    .tp-status-badge {
+      display: inline-block;
+      padding: 6px 20px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      border: 1.5px solid currentColor;
+      min-width: 120px;
+      text-align: center;
+    }
+    .tp-status-badge[data-state="ready"]   { color: var(--text-dim); }
+    .tp-status-badge[data-state="running"] { color: #1a7a3c; box-shadow: 0 0 12px rgba(26,122,60,.15); }
+    .tp-status-badge[data-state="paused"]  { color: var(--yellow); }
+    .tp-status-badge[data-state="timesup"] { color: var(--red); animation: pulse-danger 1s infinite; }
+
+    /* Progress bar */
+    .tp-bar-track {
+      width: min(500px, 80vw);
+      height: 8px;
+      background: rgba(0,0,0,0.08);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .tp-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-d), var(--gold));
+      border-radius: 99px;
+      transition: width 0.9s linear, background .5s;
+    }
+    .tp-bar-fill.warning  { background: linear-gradient(90deg, #c0392b, var(--yellow)); }
+    .tp-bar-fill.critical { background: var(--red); }
+
+    /* Controls */
+    .tp-controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .tp-controls .btn {
+      min-width: 130px;
+      padding: 12px 24px;
+      font-size: 15px;
+    }
+
+    /* Times up overlay flash */
+    @keyframes flash-bg {
+      0%,100% { background: var(--bg); }
+      50%      { background: rgba(192,57,43,0.08); }
+    }
+    .timer-page.times-up { animation: flash-bg 1s infinite; }
+  </style>
+</head>
+<body class="timer-page" id="timer-page">
+
+  <!-- ── Password gate ── -->
+  <div class="gate-overlay" id="gate-overlay">
+    <div class="gate-card">
+      <div class="gate-icon">⏱</div>
+      <h1 class="gate-title">Timer</h1>
+      <p class="gate-sub">RoboCamp 2026</p>
+      <form class="gate-form" id="gate-form">
+        <input
+          type="password"
+          class="gate-input"
+          id="gate-pw"
+          placeholder="Enter passcode"
+          autocomplete="current-password"
+          autofocus
+        >
+        <button type="submit" class="btn btn-primary btn-lg">Unlock</button>
+      </form>
+      <p class="gate-error hidden" id="gate-error">Incorrect passcode — try again.</p>
+    </div>
+  </div>
+
+  <!-- ── Timer UI (hidden until auth) ── -->
+  <header class="tp-header hidden" id="tp-header">
+    <span class="tp-brand">RoboCamp 2026 — Timer</span>
+    <div class="tp-actions">
+      <a href="/" class="btn btn-ghost btn-sm">Display ↗</a>
+      <a href="/admin.html" class="btn btn-ghost btn-sm">Admin ↗</a>
+      <button class="btn btn-ghost btn-sm" id="btn-lock">Lock</button>
+    </div>
+  </header>
+
+  <div class="tp-stage hidden" id="tp-stage">
+    <div class="tp-label">Mission Time</div>
+
+    <div class="tp-digits" id="tp-digits">2:30</div>
+
+    <div class="tp-status-badge" id="tp-badge" data-state="ready">READY</div>
+
+    <div class="tp-bar-track">
+      <div class="tp-bar-fill" id="tp-bar"></div>
+    </div>
+
+    <div class="tp-controls">
+      <button class="btn btn-success" id="btn-start">▶ Start</button>
+      <button class="btn btn-warning" id="btn-stop">⏸ Pause</button>
+      <button class="btn btn-danger"  id="btn-reset">↺ Reset</button>
+    </div>
+  </div>
+
+  <script src="/timer.js"></script>
+</body>
+</html>
