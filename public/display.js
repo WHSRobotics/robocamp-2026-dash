@@ -2,7 +2,7 @@
 
 // ── CONFIGURE THIS ─────────────────────────────────────────────────────────
 // Paste your Google Sheet ID here (the long string in the sheet URL)
-const SHEET_ID = 'YOUR_GOOGLE_SHEET_ID_HERE';
+const SHEET_ID = '1gbXlbTxFC-Dh7S_pzb-v1ylSgRvgz3O6C8ti4upyVhw';
 // ───────────────────────────────────────────────────────────────────────────
 
 const POLL_MS        = 4000;  // how often to refresh from the sheet (ms)
@@ -46,6 +46,10 @@ async function fetchSheet(name) {
 
 // ── Fetch & render ──
 async function fetchAll() {
+  if (SHEET_ID === 'YOUR_GOOGLE_SHEET_ID_HERE') {
+    setConnStatus('unconfigured');
+    return;
+  }
   try {
     const [teamsRows, schedRows, statusRows] = await Promise.all([
       fetchSheet('Teams'),
@@ -186,9 +190,16 @@ function renderSchedule(schedule, queueIndex) {
 
 function setConnStatus(state) {
   const el = document.getElementById('conn-status');
-  el.dataset.state = state === 'connected' ? 'connected' : 'disconnected';
-  el.querySelector('.conn-label').textContent =
-    state === 'connected' ? 'Live' : 'Connection error — retrying…';
+  if (state === 'connected') {
+    el.dataset.state = 'connected';
+    el.querySelector('.conn-label').textContent = 'Live';
+  } else if (state === 'unconfigured') {
+    el.dataset.state = 'disconnected';
+    el.querySelector('.conn-label').textContent = 'Sheet ID not configured';
+  } else {
+    el.dataset.state = 'disconnected';
+    el.querySelector('.conn-label').textContent = 'Sheet error — retrying…';
+  }
 }
 
 function bestScore({ scores }) {
