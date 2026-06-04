@@ -1,171 +1,179 @@
 # RoboCamp 2026 — Competition Dashboard
 
-Live competition dashboard for **RoboCamp 2026**, a mock robotics competition with 8 teams. Built with Node.js + Express + Socket.io.
+Live competition dashboard for **RoboCamp 2026**, a mock robotics competition with 8 teams.
+
+- **Public display** polls a Google Sheet as CSV — no auth, no backend needed for reads
+- **Volunteer admin panel** writes scores and queue changes back to the sheet via a Vercel serverless function
+- Deploys cleanly on **Vercel** (static files + one serverless function)
 
 ---
 
-## Features
+## Google Sheet setup
 
-- **Public display page** (`/`) — large live timer, match queue, scoreboard, and full schedule; synced in real time across all connected clients
-- **Volunteer control panel** (`/admin.html`) — password-protected; controls timer, scores, match queue, teams, and schedule
-- **Server-authoritative timer** — timer state lives on the server; all clients receive updates via Socket.io
-- **"TIME'S UP" indicator** — fires automatically when timer reaches 0:00
-- **Live sync** — every connected display updates instantly when volunteers make changes
+### 1. Create the spreadsheet
 
----
+Create a Google Sheet with exactly **three tabs** named:
 
-## Configurable Values
+#### Tab: `Teams`
+| A: ID | B: Name | C: Number | D: Round 1 | E: Round 2 | F: Round 3 |
+|-------|---------|-----------|------------|------------|------------|
+| 1 | Robo Rangers | 1001 | | | |
+| 2 | Circuit Breakers | 1002 | | | |
+| 3 | Tech Titans | 1003 | | | |
+| 4 | Code Crushers | 1004 | | | |
+| 5 | Bot Squad | 1005 | | | |
+| 6 | Gear Grinders | 1006 | | | |
+| 7 | Brick Builders | 1007 | | | |
+| 8 | Logic League | 1008 | | | |
 
-Open **`server.js`** and edit the block at the top:
+#### Tab: `Schedule`
+| A: Match | B: Team Name | C: Team Number | D: Round |
+|----------|-------------|----------------|----------|
+| 1 | Robo Rangers | 1001 | 1 |
+| 2 | Circuit Breakers | 1002 | 1 |
+| ... | | | |
 
-```js
-const ADMIN_PASSWORD   = 'Marshmellow';   // volunteer panel passcode
-const COMPETITION_NAME = 'RoboCamp 2026'; // shown in header
-const TIMER_DURATION   = 150;             // seconds (150 = 2:30)
+#### Tab: `Status`
+| A: Key | B: Value |
+|--------|----------|
+| CurrentTeamName | Robo Rangers |
+| CurrentTeamNumber | 1001 |
+| CurrentRound | 1 |
+| QueueIndex | 0 |
 
-const INITIAL_TEAMS = [
-  { id: 1, name: 'Robo Rangers',     number: '1001' },
-  // ... 8 teams total
-];
+> Row order in the Status tab must be exactly as shown — the app reads by row position.
+
+### 2. Publish the sheet (for public CSV reads)
+
+1. **File → Share → Publish to web**
+2. Choose **Entire document** and format **Web page**, click **Publish**
+3. Also make sure **File → Share → Share with anyone** is set to **Viewer** (anyone with link)
+
+> This lets the display page fetch CSV data directly from Google — no API key needed for reads.
+
+### 3. Create a service account (for admin writes)
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com)
+2. Create a project (or use an existing one)
+3. Enable the **Google Sheets API**
+4. Go to **IAM & Admin → Service Accounts** → Create service account
+5. Download the JSON key file
+6. **Share your spreadsheet** with the service account email (e.g. `robocamp@project.iam.gserviceaccount.com`) as **Editor**
+
+### 4. Get your Spreadsheet ID
+
+The ID is the long string in the sheet URL:
+```
+https://docs.google.com/spreadsheets/d/THIS_IS_YOUR_ID/edit
 ```
 
 ---
 
-## Running Locally
+## Configuration
 
-### Prerequisites
-- Node.js 18 or later
-- npm
+### In `public/display.js` and `public/admin.js`
 
-### Steps
+At the top of each file, set:
+
+```js
+const SHEET_ID = 'your-spreadsheet-id-here';
+```
+
+### In Vercel (environment variables)
+
+| Variable | Value |
+|---|---|
+| `GOOGLE_SHEET_ID` | Your spreadsheet ID |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | The full contents of your service account JSON key (paste the entire JSON as a single string) |
+
+### Admin password
+
+In `api/update.js`, change:
+```js
+const ADMIN_PASSWORD = 'Marshmellow';
+```
+
+---
+
+## Running locally
 
 ```bash
-# 1. Install dependencies
 npm install
-
-# 2. Start the server
-npm start
-
-# 3. Open in browser
-#   Public display:  http://localhost:3000
-#   Volunteer panel: http://localhost:3000/admin.html
+npm start        # static preview only (no admin writes)
 ```
 
-For development with auto-restart on file changes (Node 18+):
-
+For full local dev including admin API:
 ```bash
-npm run dev
+npm install -g vercel
+vercel dev       # runs Vercel dev server with serverless functions
+```
+
+Set env vars locally with a `.env` file (Vercel CLI reads it automatically):
+```
+GOOGLE_SHEET_ID=your-id-here
+GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
 ```
 
 ---
 
-## Deployment
-
-### Option A — Render (recommended, fully free, zero config)
-
-Render runs a persistent Node.js process, which is what Socket.io + in-memory state require. No extra steps needed.
-
-1. Push this repo to GitHub.
-2. Go to [render.com](https://render.com) → **New Web Service**.
-3. Connect your repo and set:
-   - **Runtime:** Node
-   - **Build command:** `npm install`
-   - **Start command:** `npm start`
-   - **Instance type:** Free
-4. Deploy. Share `/` with spectators and `/admin.html` with volunteers.
-
-> The free tier spins down after 15 min of inactivity. Open the URL a few minutes before the competition starts to wake it up, or use the Starter plan ($7/mo) to keep it always-on.
-
----
-
-### Option B — Vercel (frontend) + Render (backend)
-
-Vercel's serverless functions can't hold Socket.io state, so the backend must still run on Render. This split setup lets the public display URL live on Vercel's CDN while the Socket.io server runs on Render.
-
-**Step 1 — Deploy the backend to Render** (same as Option A above).  
-Note the URL Render gives you, e.g. `https://robocamp-2026-dash.onrender.com`.
-
-**Step 2 — Point the clients at the Render backend.**  
-In both `public/display.js` and `public/admin.js`, change the first line from:
-
-```js
-const socket = io({ transports: ['polling', 'websocket'] });
-```
-
-to:
-
-```js
-const socket = io('https://robocamp-2026-dash.onrender.com', { transports: ['polling', 'websocket'] });
-```
-
-**Step 3 — Deploy to Vercel.**
+## Deploying to Vercel
 
 ```bash
-npm i -g vercel
+npm install -g vercel
 vercel --prod
 ```
 
-Vercel will detect the `vercel.json` and route all requests through `server.js`. The static files are served by Express via Vercel's Node runtime — but **the Socket.io real-time connection goes directly to your Render URL**, not through Vercel.
+Then in the Vercel dashboard → your project → **Settings → Environment Variables**, add:
+- `GOOGLE_SHEET_ID`
+- `GOOGLE_SERVICE_ACCOUNT_JSON`
 
-> **Practical advice:** For a one-day competition, Option A (Render only) is simpler — one URL, one service, nothing to keep in sync. Use the split setup only if you specifically want the public display URL on a custom Vercel domain.
+Redeploy after adding env vars. That's it.
+
+> The public display page at `/` fetches the Google Sheet CSV directly from the browser — no cold start, no server cost, just fast CSV polling every 4 seconds.
 
 ---
 
-## Project Structure
+## Architecture
 
 ```
-robocamp-org-dash/
-├── server.js          # Express + Socket.io server — all configurable values here
-├── package.json
-├── vercel.json        # Reference only (see note above)
-├── .gitignore
-├── README.md
-└── public/
-    ├── index.html     # Public display page
-    ├── admin.html     # Volunteer control panel
-    ├── style.css      # Shared styles (dark theme, responsive)
-    ├── display.js     # Client JS for public page
-    └── admin.js       # Client JS for admin panel
+Browser (display page)
+  └─ fetch CSV every 4s ──────────────────→ Google Sheets (public)
+
+Browser (admin panel)
+  ├─ fetch CSV every 5s ──────────────────→ Google Sheets (public read)
+  └─ POST /api/update ──→ Vercel function ──→ Google Sheets API (authenticated write)
 ```
 
 ---
 
-## Admin Panel Guide
+## Project structure
 
-| Section | What it does |
-|---|---|
-| **Timer Control** | Start / Stop / Reset the 2:30 countdown. Timer authority is server-side. |
-| **Match Queue** | Advance or go back one match. Current and next two matches shown. |
-| **Enter Score** | Select team + round, enter total points, save. Scores persist in server memory. |
-| **Set Current Match** | Override the displayed team name, number, and round manually. |
-| **Teams** | Edit team names and numbers; saving broadcasts changes to all displays. |
-| **Match Schedule** | Reorder matches with ↑↓, remove with ✕, add new matches at the bottom. |
-
-Admin password: **Marshmellow** (edit `ADMIN_PASSWORD` in `server.js` to change)
+```
+/
+├── api/
+│   └── update.js       # Vercel serverless function — all admin writes
+├── public/
+│   ├── index.html      # Public display page
+│   ├── admin.html      # Volunteer control panel
+│   ├── style.css       # Cream-gold theme
+│   ├── display.js      # Polls CSV, renders scoreboard/schedule/queue
+│   └── admin.js        # Admin controls, writes via /api/update
+├── server.js           # Minimal local static server (npm start)
+├── vercel.json         # Vercel routing config
+└── package.json
+```
 
 ---
 
-## Socket.io Events
+## Admin panel
 
-| Event (client → server) | Payload |
-|---|---|
-| `timerStart` | `{ password }` |
-| `timerStop` | `{ password }` |
-| `timerReset` | `{ password }` |
-| `advanceQueue` | `{ password }` |
-| `prevQueue` | `{ password }` |
-| `submitScore` | `{ password, teamId, round, score }` |
-| `deleteScore` | `{ password, teamId, round }` |
-| `setCurrentMatch` | `{ password, teamName, teamNumber, round }` |
-| `updateTeams` | `{ password, teams[] }` |
-| `updateSchedule` | `{ password, schedule[] }` |
+Password: **Marshmellow** (change in `api/update.js`)
 
-| Event (server → client) | Payload |
+| Control | What it does |
 |---|---|
-| `fullState` | Complete state snapshot (sent on connect) |
-| `timerUpdate` | `{ remaining, running }` |
-| `scoresUpdate` | `{ [teamId]: { [round]: score } }` |
-| `queueUpdate` | `{ queueIndex, currentMatch }` |
-| `currentMatchUpdate` | `{ teamName, teamNumber, round }` |
-| `scheduleUpdate` | `schedule[]` |
-| `teamsUpdate` | `teams[]` |
+| Timer | Local countdown (per-browser, not synced — sync coming later) |
+| Next / Previous | Advances queue position and updates Status tab |
+| Enter Score | Writes score to Teams tab column D/E/F |
+| Set Current Match | Overwrites Status tab rows 1–3 |
+| Teams | Edit names/numbers; Save writes to Teams tab (scores preserved) |
+| Schedule | Edit order; Save rewrites Schedule tab |
