@@ -1,17 +1,11 @@
 {
   "name": "robocamp-2026",
   "version": "1.0.0",
-  "description": "Mock Robotics Competition Dashboard — RoboCamp 2026",
-  "main": "server.js",
+  "description": "RoboCamp 2026 Dashboard",
   "scripts": {
-    "start": "node server.js",
-    "dev": "vercel dev"
-  },
-  "engines": {
-    "node": ">=18"
+    "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "googleapis": "^144.0.0"
+    "express": "^4.18.2"
   }
 }

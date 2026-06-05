@@ -17,31 +17,15 @@
       <div class="header-brand">
         <div class="header-icon">⚙</div>
         <div>
-          <div class="header-title" id="competition-name">RoboCamp 2026</div>
-          <div class="header-sub">Mock Robotics Competition</div>
+          <div class="header-title">RoboCamp 2026</div>
         </div>
       </div>
-      <div class="connection-pill" id="conn-status">
-        <span class="conn-dot"></span>
-        <span class="conn-label">Connecting…</span>
-      </div>
+      <a href="/schedule.html" class="btn btn-ghost">📅 Schedule</a>
     </div>
   </header>
 
   <!-- ── Main grid ── -->
   <main class="display-grid">
-
-    <!-- Timer -->
-    <section class="card timer-card">
-      <div class="section-label">MISSION TIME</div>
-      <div class="timer-wrap">
-        <div class="timer-digits" id="timer-digits">2:30</div>
-        <div class="timer-badge" id="timer-badge" data-state="ready">READY</div>
-      </div>
-      <div class="timer-bar-track">
-        <div class="timer-bar-fill" id="timer-bar"></div>
-      </div>
-    </section>
 
     <!-- Current Match -->
     <section class="card current-match-card">
@@ -53,7 +37,7 @@
           <span class="meta-val" id="cur-team-num">—</span>
         </div>
         <div class="meta-chip">
-          <span class="meta-lbl">ROUND</span>
+          <span class="meta-lbl">MATCH</span>
           <span class="meta-val" id="cur-round">—</span>
         </div>
       </div>
@@ -67,7 +51,7 @@
       </ol>
     </section>
 
-    <!-- Scoreboard -->
+    <!-- Scoreboard — spans full bottom row -->
     <section class="card scoreboard-card">
       <div class="section-label">SCOREBOARD</div>
       <div class="scoreboard-wrap">
@@ -75,36 +59,19 @@
           <thead>
             <tr>
               <th class="col-rank">#</th>
-              <th class="col-team">Team</th>
-              <th class="col-num">No.</th>
-              <th class="col-r">R1</th>
-              <th class="col-r">R2</th>
-              <th class="col-r">R3</th>
-              <th class="col-best">Best</th>
+              <th class="col-team">Team Name</th>
+              <th class="col-adj">Adjusted Score</th>
+              <th class="col-total">Total Score</th>
+              <th class="col-r">Match 1</th>
+              <th class="col-r">Match 2</th>
+              <th class="col-r">Match 3</th>
+              <th class="col-r">Match 4</th>
+              <th class="col-r">Match 5</th>
+              <th class="col-r">Match 6</th>
             </tr>
           </thead>
           <tbody id="scoreboard-body">
-            <tr><td colspan="7" class="empty-cell">Scores will appear here</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Schedule -->
-    <section class="card schedule-card">
-      <div class="section-label">MATCH SCHEDULE</div>
-      <div class="schedule-wrap">
-        <table class="schedule-table" id="schedule-table">
-          <thead>
-            <tr>
-              <th class="col-match">#</th>
-              <th class="col-team">Team</th>
-              <th class="col-num">No.</th>
-              <th class="col-r">Rd</th>
-            </tr>
-          </thead>
-          <tbody id="schedule-body">
-            <tr><td colspan="4" class="empty-cell">Loading schedule…</td></tr>
+            <tr><td colspan="10" class="empty-cell">Scores will appear here</td></tr>
           </tbody>
         </table>
       </div>

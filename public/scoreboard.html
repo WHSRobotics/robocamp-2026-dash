@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<!--
+  OBS BROWSER SOURCE SETUP:
+  1. Add Browser Source → URL: <your-url>/scoreboard.html
+  2. Width: 1920, Height: 1080 (or your canvas size)
+  3. Check ✅ "Allow transparency"
+  The bar sits at the bottom; everything above is transparent.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scoreboard Overlay — RoboCamp 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: transparent;
+      font-family: 'Inter', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+    body { display: flex; flex-direction: column; justify-content: flex-start; }
+
+    /* ── Main bar ── */
+    .obs-bar {
+      display: flex;
+      align-items: stretch;
+      height: 96px;
+      background: rgba(12, 8, 0, 0.90);
+      border-top: 2.5px solid #c9a227;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      overflow: hidden;
+    }
+
+    /* ── Brand: RoboCamp / ⚙ / 2026 ── */
+    .bar-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 18px;
+      border-right: 1px solid rgba(201,162,39,0.3);
+      flex-shrink: 0;
+    }
+    .brand-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      line-height: 1.1;
+    }
+    .brand-top {
+      font-family: 'Orbitron', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      color: rgba(201,162,39,0.75);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    .brand-bottom {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .brand-icon {
+      font-size: 22px;
+      color: #c9a227;
+      line-height: 1;
+    }
+    .brand-year {
+      font-family: 'Orbitron', monospace;
+      font-size: 20px;
+      font-weight: 900;
+      color: #c9a227;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Match info section ── */
+    .bar-match {
+      display: flex;
+      align-items: center;
+      border-right: 1px solid rgba(201,162,39,0.3);
+      flex-shrink: 0;
+      width: 420px;
+    }
+    .match-slot {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px;
+      width: 210px;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+    .match-slot + .match-slot {
+      border-left: 1px solid rgba(255,255,255,0.08);
+    }
+    .match-badge {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 3px 7px;
+      border-radius: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .match-badge.field { background: rgba(220,60,40,0.85); color: #fff; }
+    .match-badge.next-badge { background: rgba(30,120,200,0.75); color: #fff; }
+    .match-text { display: flex; flex-direction: column; gap: 2px; }
+    .match-team {
+      font-size: 19px; font-weight: 700; color: #fff;
+      white-space: nowrap; max-width: 180px;
+      overflow: hidden; text-overflow: ellipsis;
+    }
+    .slot-next .match-team { font-size: 17px; color: rgba(255,255,255,0.85); }
+    .match-detail { font-size: 14px; color: rgba(201,162,39,0.8); white-space: nowrap; }
+
+    /* ── Scores carousel section ── */
+    .bar-scores {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+      gap: 0;
+    }
+
+    .scores-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: rgba(201,162,39,0.6);
+      text-transform: uppercase;
+      padding: 0 14px 0 18px;
+      flex-shrink: 0;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      border-right: 1px solid rgba(201,162,39,0.2);
+      margin-right: 14px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .carousel-wrap {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      height: 100%;
+    }
+
+    /* Fade edges top/bottom */
+    .carousel-wrap::before,
+    .carousel-wrap::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      height: 16px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .carousel-wrap::before {
+      top: 0;
+      background: linear-gradient(to bottom, rgba(12,8,0,0.90), transparent);
+    }
+    .carousel-wrap::after {
+      bottom: 0;
+      background: linear-gradient(to top, rgba(12,8,0,0.90), transparent);
+    }
+
+    /* Each team card */
+    .team-card {
+      position: absolute;
+      left: 0; right: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      padding: 0 14px;
+      /* States controlled by JS */
+      transition: transform 0.45s cubic-bezier(.4,0,.2,1), opacity 0.45s ease;
+    }
+    .team-card.state-active { transform: translateY(0);     opacity: 1; }
+    .team-card.state-below  { transform: translateY(110%);  opacity: 0; }
+    .team-card.state-above  { transform: translateY(-110%); opacity: 0; }
+
+    /* Rank + name inline */
+    .card-rank {
+      font-family: 'Orbitron', monospace;
+      font-size: 15px;
+      font-weight: 700;
+      color: #c9a227;
+      flex-shrink: 0;
+    }
+    .card-rank.r1 { color: #f5c518; }
+    .card-rank.r2 { color: #c0c0c0; }
+    .card-rank.r3 { color: #cd8e4e; }
+    .card-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+      flex-shrink: 1;
+    }
+    .card-num { font-size: 15px; color: rgba(255,255,255,0.4); margin-left: 4px; }
+
+    /* Card row 2: scores */
+    .card-scores {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: nowrap;
+      flex-shrink: 0;
+      border-left: 1px solid rgba(201,162,39,0.2);
+      padding-left: 10px;
+    }
+    .score-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 50px;
+      flex-shrink: 0;
+    }
+    .score-col.col-adj   { width: 66px; }
+    .score-col.col-total {
+      width: 62px;
+      border-right: 1px solid rgba(255,255,255,0.1);
+      margin-right: 10px;
+      padding-right: 10px;
+    }
+    .col-label {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      color: rgba(201,162,39,0.45);
+      text-transform: uppercase;
+    }
+    .col-val {
+      font-size: 30px;
+      font-weight: 700;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+    .col-val.col-empty { color: rgba(255,255,255,0.18); font-size: 22px; }
+    .score-col.col-adj .col-label { color: #c9a227; }
+    .score-col.col-adj .col-val   { font-size: 34px; color: #f5d76e; }
+
+    /* Connection dot */
+    .conn-dot {
+      position: fixed;
+      bottom: 6px;
+      right: 8px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #555;
+    }
+    .conn-dot.live  { background: #2ecc71; }
+    .conn-dot.error { background: #e74c3c; }
+  </style>
+</head>
+<body>
+  <div class="obs-bar">
+
+    <!-- Brand -->
+    <div class="bar-brand">
+      <div class="brand-stack">
+        <span class="brand-top">RoboCamp</span>
+        <div class="brand-bottom">
+          <span class="brand-icon">⚙</span>
+          <span class="brand-year">2026</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Current + Next match -->
+    <div class="bar-match">
+      <div class="match-slot slot-field">
+        <span class="match-badge field">On Field</span>
+        <div class="match-text">
+          <div class="match-team" id="cur-name">—</div>
+          <div class="match-detail" id="cur-detail">—</div>
+        </div>
+      </div>
+      <div class="match-slot slot-next">
+        <span class="match-badge next-badge">Next</span>
+        <div class="match-text">
+          <div class="match-team" id="next-name">—</div>
+          <div class="match-detail" id="next-detail">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vertical score carousel -->
+    <div class="bar-scores">
+      <div class="scores-label">Scores</div>
+      <div class="carousel-wrap" id="carousel-wrap">
+        <!-- Team cards injected by JS -->
+      </div>
+    </div>
+
+  </div>
+  <div class="conn-dot" id="conn-dot"></div>
+  <script src="/scoreboard.js"></script>
+</body>
+</html>

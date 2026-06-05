@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schedule — RoboCamp 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    body.schedule-page { background: var(--bg); }
+
+    /* ── Header ── */
+    .sched-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      height: 56px;
+      background: var(--bg-card);
+      border-bottom: 2px solid var(--border);
+    }
+    .sched-brand { display: flex; align-items: center; gap: 10px; }
+    .sched-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .sched-sub { font-size: 11px; color: var(--text-dim); letter-spacing: .08em; }
+
+    /* ── Status bar ── */
+    .field-status {
+      display: flex;
+      gap: 16px;
+      padding: 14px 28px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+    }
+    .fs-slot {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 18px;
+      border-radius: var(--r);
+      border: 1.5px solid var(--border);
+      flex: 1;
+    }
+    .fs-slot.fs-play  { border-color: var(--green); background: rgba(26,122,60,.06); }
+    .fs-slot.fs-queue { border-color: var(--gold);  background: rgba(184,134,11,.06); }
+    .fs-badge {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .fs-badge.play  { background: var(--green); color: #fff; }
+    .fs-badge.queue { background: var(--gold);  color: #fff; }
+    .fs-text { display: flex; flex-direction: column; gap: 1px; }
+    .fs-name { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+    .fs-meta { font-size: 11px; color: var(--text-dim); }
+
+    /* ── Schedule table wrapper ── */
+    .sched-wrap {
+      padding: 20px 28px 28px;
+      overflow-x: auto;
+    }
+
+    .sched-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-card);
+      border-radius: var(--r);
+      border: 1.5px solid var(--border);
+      overflow: hidden;
+    }
+
+    .sched-table th {
+      padding: 11px 14px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      background: var(--bg-card-alt);
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+    .sched-table th.col-break {
+      background: rgba(184,134,11,.07);
+      color: var(--gold-d);
+    }
+
+    .sched-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid rgba(184,134,11,.1);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .sched-table tbody tr:last-child td { border-bottom: none; }
+    .sched-table tbody tr:hover { background: rgba(184,134,11,.03); }
+
+    .col-team  { min-width: 170px; text-align: left; }
+    .col-round { min-width: 90px; text-align: center; }
+    .col-break { min-width: 110px; text-align: center; background: rgba(184,134,11,.04); color: var(--text-dim); font-size: 12px; }
+
+    .team-name { font-weight: 600; }
+    .team-num  { font-size: 11px; color: var(--text-dim); margin-left: 5px; }
+
+    .time-cell { font-variant-numeric: tabular-nums; font-weight: 600; text-align: center; }
+
+    /* Delay colors */
+    .time-delayed { color: #c0392b; background: rgba(192,57,43,.08); border-radius: 5px; padding: 3px 8px; }
+    .time-early   { color: #1a7a3c; background: rgba(26,122,60,.08); border-radius: 5px; padding: 3px 8px; }
+
+    .delay-label { font-size: 10px; display: block; opacity: .8; margin-top: 1px; }
+
+    /* ── Global delay strip ── */
+    .delay-strip {
+      padding: 7px 28px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      border-bottom: 1px solid var(--border);
+    }
+    #delay-status[data-state="ontime"]  { color: var(--green); background: rgba(26,122,60,.06); }
+    #delay-status[data-state="behind"]  { color: #c0392b;      background: rgba(192,57,43,.07); }
+    #delay-status[data-state="ahead"]   { color: var(--gold);  background: rgba(184,134,11,.07); }
+  </style>
+</head>
+<body class="schedule-page">
+
+  <!-- Header -->
+  <header class="sched-header">
+    <div class="sched-brand">
+      <div style="font-size:22px">⚙</div>
+      <div>
+        <div class="sched-title">RoboCamp 2026</div>
+        <div class="sched-sub">Match Schedule</div>
+      </div>
+    </div>
+    <div class="connection-pill" id="conn-status">
+      <span class="conn-dot"></span>
+      <span class="conn-label">Connecting…</span>
+    </div>
+  </header>
+
+  <!-- Currently in play / Queuing now -->
+  <div class="field-status">
+    <div class="fs-slot fs-play">
+      <span class="fs-badge play">▶ In Play</span>
+      <div class="fs-text">
+        <div class="fs-name" id="cur-name">—</div>
+        <div class="fs-meta" id="cur-meta">—</div>
+      </div>
+    </div>
+    <div class="fs-slot fs-queue">
+      <span class="fs-badge queue">⏳ Queuing Now</span>
+      <div class="fs-text">
+        <div class="fs-name" id="queue-name">—</div>
+        <div class="fs-meta" id="queue-meta">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global delay status -->
+  <div class="delay-strip" id="delay-status" data-state="ontime">✓ On time</div>
+
+  <!-- Schedule table -->
+  <div class="sched-wrap">
+    <table class="sched-table">
+      <thead>
+        <tr>
+          <th class="col-team">Team</th>
+          <th class="col-round">Match 1</th>
+          <th class="col-round">Match 2</th>
+          <th class="col-round">Match 3</th>
+          <th class="col-round">Match 4</th>
+          <th class="col-round">Match 5</th>
+          <th class="col-round">Match 6</th>
+        </tr>
+      </thead>
+      <tbody id="sched-body">
+        <tr><td colspan="7" class="empty-cell">Loading schedule…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script src="/schedule.js"></script>
+</body>
+</html>
