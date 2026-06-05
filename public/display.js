@@ -42,12 +42,50 @@ async function fetchSheet(name) {
   return parseCsv(await r.text());
 }
 
+// ── Time helpers (mirrors schedule.js) ──
+function parseTime(s) {
+  if (!s) return null;
+  const [h, m] = s.split(':').map(Number);
+  return isNaN(h) || isNaN(m) ? null : h * 60 + m;
+}
+
+function buildSlots(schedTeams) {
+  const slots = [];
+  for (let r = 0; r < 6; r++) {
+    schedTeams.forEach(t => {
+      const timeMin = parseTime(t.times[r]);
+      if (timeMin !== null)
+        slots.push({ teamName: t.name, teamNumber: t.number, round: r + 1, timeMin, timeStr: t.times[r] });
+    });
+  }
+  // Midnight-wrap correction: if times jump back >30 min, add 24 h to remainder
+  let offset = 0;
+  for (let i = 1; i < slots.length; i++) {
+    if (slots[i].timeMin + offset < slots[i - 1].timeMin - 30) offset += 1440;
+    slots[i].timeMin += offset;
+  }
+  return slots;
+}
+
+function findQueueIdx(slots) {
+  if (!slots.length) return 0;
+  const now = new Date();
+  let nowMin = now.getHours() * 60 + now.getMinutes();
+  if (slots[slots.length - 1].timeMin > 1440 && nowMin < 720) nowMin += 1440;
+  let idx = 0;
+  for (let i = 0; i < slots.length; i++) {
+    if (slots[i].timeMin <= nowMin) idx = i; else break;
+  }
+  return idx;
+}
+
 // ── Fetch & render ──
 async function fetchAll() {
   try {
-    const [skRows, pubRows] = await Promise.all([
+    const [skRows, pubRows, schedRows] = await Promise.all([
       fetchSheet('SCOREKEEPER'),
       fetchSheet('PUBLIC'),
+      fetchSheet('SCHEDULER'),
     ]);
 
     // SCOREKEEPER: row 0 = header, rows 1+ = teams
@@ -61,8 +99,8 @@ async function fetchAll() {
         rank:   Number(r[0]) || 0,
         name,
         number,
-        adjust: num(r[2]),  // column C — Adjusted Score
-        total:  num(r[3]),  // column D — Total Score
+        adjust: num(r[2]),
+        total:  num(r[3]),
         scores: { 1: num(r[4]), 2: num(r[5]), 3: num(r[6]), 4: num(r[7]), 5: num(r[8]), 6: num(r[9]) },
       };
     });
@@ -74,20 +112,20 @@ async function fetchAll() {
       teamNumber: status['CurrentTeamNumber'] || '—',
       round:      status['CurrentRound']      || '—',
     };
-    const queueIndex = Number(status['QueueIndex'] || 0);
 
-    // PUBLIC rows 6+: schedule entries (numeric first field only — skip delay rows)
-    const schedule = pubRows.slice(5)
-      .filter(r => r[0] && !isNaN(Number(r[0])))
-      .map(r => ({
-        id:         Number(r[0]) || 0,
-        teamName:   r[1] || '',
-        teamNumber: r[2] || '',
-        round:      Number(r[3]) || 1,
-      }));
+    // SCHEDULER: row 1 = header, rows 2+ = "N | Team Name" in col A, times in cols B-G
+    const schedTeams = schedRows.slice(1)
+      .filter(r => r[0] && r[0].includes('|'))
+      .map(r => {
+        const parts = r[0].split('|').map(s => s.trim());
+        return { number: parts[0], name: parts[1] || parts[0], times: [r[1], r[2], r[3], r[4], r[5], r[6]] };
+      });
+
+    const slots = buildSlots(schedTeams);
+    const queueIdx = findQueueIdx(slots);
 
     renderCurrentMatch(currentMatch);
-    renderQueue(schedule, queueIndex);
+    renderQueue(slots, queueIdx);
     renderScoreboard(teams);
   } catch (err) {
     console.error('[display]', err.message);
@@ -101,23 +139,23 @@ function renderCurrentMatch({ teamName, teamNumber, round }) {
   document.getElementById('cur-round').textContent     = round;
 }
 
-function renderQueue(schedule, queueIndex) {
-  const list  = document.getElementById('queue-list');
-  const slots = [
-    { label: 'NOW',  cls: 'now',  idx: queueIndex },
-    { label: 'NEXT', cls: 'next', idx: queueIndex + 1 },
-    { label: 'THEN', cls: 'then', idx: queueIndex + 2 },
+function renderQueue(slots, queueIdx) {
+  const list   = document.getElementById('queue-list');
+  const labels = [
+    { label: 'NOW',  cls: 'now',  idx: queueIdx },
+    { label: 'NEXT', cls: 'next', idx: queueIdx + 1 },
+    { label: 'THEN', cls: 'then', idx: queueIdx + 2 },
   ];
 
-  const items = slots
-    .filter(s => s.idx < schedule.length)
+  const items = labels
+    .filter(s => s.idx >= 0 && s.idx < slots.length)
     .map(({ label, cls, idx }) => {
-      const m = schedule[idx];
+      const m = slots[idx];
       return `<li class="queue-item${cls === 'now' ? ' queue-now' : ''}">
         <span class="queue-badge ${cls}">${label}</span>
         <span class="queue-text">
           <strong>${esc(m.teamName)}</strong>
-          <small> · #${esc(m.teamNumber)} · Rd ${m.round}</small>
+          <small> · #${esc(m.teamNumber)} · Rd ${m.round} · ${esc(m.timeStr)}</small>
         </span>
       </li>`;
     });
