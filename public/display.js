@@ -124,7 +124,13 @@ async function fetchAll() {
     const slots = buildSlots(schedTeams);
     const queueIdx = findQueueIdx(slots);
 
-    renderCurrentMatch(currentMatch);
+    // Prefer schedule-derived current match; fall back to PUBLIC sheet manual override
+    const schedCurrent = slots[queueIdx];
+    const onField = schedCurrent
+      ? { teamName: schedCurrent.teamName, teamNumber: schedCurrent.teamNumber, round: schedCurrent.round }
+      : currentMatch;
+
+    renderCurrentMatch(onField);
     renderQueue(slots, queueIdx);
     renderScoreboard(teams);
   } catch (err) {
