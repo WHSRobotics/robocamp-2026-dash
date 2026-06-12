@@ -100,6 +100,7 @@ async function fetchAll() {
       const name   = parts.length > 1 ? parts[1] : parts[0];
       return {
         name, number,
+        rank:   num(r[0]),
         adjust: num(r[2]),
         total:  num(r[3]),
         scores: { 1: num(r[4]), 2: num(r[5]), 3: num(r[6]), 4: num(r[7]), 5: num(r[8]), 6: num(r[9]) },
@@ -107,10 +108,10 @@ async function fetchAll() {
     });
 
     const sorted = [...teams].sort((a, b) => {
-      if (a.total === null && b.total === null) return 0;
-      if (a.total === null) return 1;
-      if (b.total === null) return -1;
-      return b.total - a.total;
+      if (a.rank === null && b.rank === null) return 0;
+      if (a.rank === null) return 1;
+      if (b.rank === null) return -1;
+      return a.rank - b.rank;
     });
 
     // SCHEDULER: time-based queue
@@ -151,7 +152,7 @@ function buildCarousel(teams) {
   const wrap = document.getElementById('carousel-wrap');
 
   wrap.innerHTML = teams.map((t, i) => {
-    const rank    = i + 1;
+    const rank    = t.rank ?? (i + 1);
     const rankCls = rank <= 3 ? `r${rank}` : '';
 
     const col = (label, val, cls = '') => {
