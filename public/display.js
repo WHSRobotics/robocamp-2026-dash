@@ -1,14 +1,15 @@
 'use strict';
 
 // ── CONFIGURE THIS ─────────────────────────────────────────────────────────
-const SHEET_ID = '1gbXlbTxFC-Dh7S_pzb-v1ylSgRvgz3O6C8ti4upyVhw';
+const PUB_ID = '2PACX-1vTcWLeyPjDMxTLCJmFTkoVd1cVD3xToMqejfjr8R4iu1IJ9KI-VXH-ToIFlKZCUW9mJrH7_w2FpP1uQ';
+const SHEET_GIDS = { SCOREKEEPER: 0, PUBLIC: 199719322, SCHEDULER: 33248599 };
 // ───────────────────────────────────────────────────────────────────────────
 
 const POLL_MS = 4000;
 
 // ── CSV helpers ──
 function csvUrl(sheetName) {
-  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  return `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?output=csv&gid=${SHEET_GIDS[sheetName]}`;
 }
 
 function parseCsv(text) {
